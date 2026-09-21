@@ -18,6 +18,7 @@ public enum ErrorCode {
     BOOKING_NOT_AVAILABLE("booking.notAvailable", HttpStatus.BAD_REQUEST.value()),
     BOOKING_ACCESS_DENIED("booking.accessDenied", HttpStatus.FORBIDDEN.value()),
     BOOKING_INVALID_DATES("booking.invalidDates", HttpStatus.BAD_REQUEST.value()),
+    BOOKING_STATUS_INVALID("booking.statusInvalid", HttpStatus.BAD_REQUEST.value());
 
     private final String key;
     private final int httpStatus;
