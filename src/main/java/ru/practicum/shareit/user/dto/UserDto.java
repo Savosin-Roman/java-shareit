@@ -9,7 +9,7 @@ import ru.practicum.shareit.validation.ValidationKeys;
 
 @Data
 public class UserDto {
-    @NotNull(groups = ValidationGroups.Update.class, message = ValidationKeys.USER_ID_NOT_NULL)
+
     private Integer id;
 
     @NotBlank(groups = {ValidationGroups.Create.class}, message = ValidationKeys.USER_EMAIL_NOT_BLANK)

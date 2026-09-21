@@ -9,8 +9,7 @@ import ru.practicum.shareit.validation.ValidationKeys;
 @Data
 public class ItemDto {
 
-    @NotNull(groups = ValidationGroups.Update.class,
-            message = ValidationKeys.ITEM_ID_NOT_NULL)
+    // УБРАТЬ @NotNull — id приходит из PathVariable, а не из тела
     private Integer id;
 
     @NotBlank(groups = {ValidationGroups.Create.class},
