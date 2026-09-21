@@ -18,7 +18,8 @@ public class ItemRowMapper implements RowMapper<Item> {
         item.setDescription(rs.getString("description"));
         item.setAvailable(rs.getBoolean("available"));
         item.setOwner(rs.getInt("owner"));
-        item.setRequest(rs.getInt("request"));
+        int requestId = rs.getInt("request");
+        item.setRequest(rs.wasNull() ? null : requestId);
         return item;
     }
 }
