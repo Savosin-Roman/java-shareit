@@ -73,6 +73,7 @@ public class ItemController {
                           @PathVariable Integer itemId,
                           @Validated(ValidationGroups.Update.class)
                           @RequestBody ItemDto itemDto) {
+        itemDto.setId(itemId);
         Item item = itemMapper.toEntity(itemDto);
         Item updated = itemService.update(userId, itemId, item);
         return itemMapper.toDto(updated);
