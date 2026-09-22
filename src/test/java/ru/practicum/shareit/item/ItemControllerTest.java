@@ -11,8 +11,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import ru.practicum.shareit.exception.ApiException;
 import ru.practicum.shareit.exception.ErrorCode;
 import ru.practicum.shareit.exception.ErrorHandler;
-import ru.practicum.shareit.item.ItemController;
-import ru.practicum.shareit.item.ItemService;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.dto.ItemMapper;
 import ru.practicum.shareit.item.model.Item;
@@ -25,12 +23,11 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static ru.practicum.shareit.validation.Headers.USER_ID;
 
 @WebMvcTest(ItemController.class)
 @Import({ItemMapper.class, ErrorHandler.class})
 class ItemControllerTest {
-
-    private static final String USER_HEADER = "X-Sharer-User-Id";
 
     @Autowired
     private MockMvc mockMvc;
@@ -61,7 +58,7 @@ class ItemControllerTest {
         when(itemService.save(anyInt(), any(Item.class))).thenReturn(item());
 
         mockMvc.perform(post("/items")
-                        .header(USER_HEADER, 1)
+                        .header(USER_ID, 1)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isCreated())
@@ -89,7 +86,7 @@ class ItemControllerTest {
         dto.setDescription("Аккумуляторная");
 
         mockMvc.perform(post("/items")
-                        .header(USER_HEADER, 1)
+                        .header(USER_ID, 1)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isBadRequest());
@@ -106,7 +103,7 @@ class ItemControllerTest {
                 .thenThrow(new ApiException(ErrorCode.USER_NOT_FOUND, 99));
 
         mockMvc.perform(post("/items")
-                        .header(USER_HEADER, 99)
+                        .header(USER_ID, 99)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isNotFound());
@@ -135,7 +132,7 @@ class ItemControllerTest {
     void getOwnerItems_returnsList() throws Exception {
         when(itemService.findAllOwnerItems(1)).thenReturn(List.of(item()));
 
-        mockMvc.perform(get("/items").header(USER_HEADER, 1))
+        mockMvc.perform(get("/items").header(USER_ID, 1))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].name").value("Дрель"))
@@ -168,7 +165,7 @@ class ItemControllerTest {
         when(itemService.update(anyInt(), anyInt(), any(Item.class))).thenReturn(item());
 
         mockMvc.perform(patch("/items/1")
-                        .header(USER_HEADER, 1)
+                        .header(USER_ID, 1)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isOk());
@@ -183,7 +180,7 @@ class ItemControllerTest {
                 .thenThrow(new ApiException(ErrorCode.ACCESS_DENIED, 1));
 
         mockMvc.perform(patch("/items/1")
-                        .header(USER_HEADER, 2)
+                        .header(USER_ID, 2)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isForbidden());

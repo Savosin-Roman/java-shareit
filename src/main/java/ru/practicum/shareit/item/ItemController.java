@@ -23,12 +23,12 @@ import ru.practicum.shareit.validation.ValidationGroups;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static ru.practicum.shareit.validation.Headers.USER_ID;
+
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("/items")
 public class ItemController {
-
-    private static final String USER_HEADER = "X-Sharer-User-Id";
 
     private final ItemService itemService;
     private final ItemMapper itemMapper;
@@ -41,7 +41,7 @@ public class ItemController {
 
     // просмотр владельцем всех его вещей (только название и описание)
     @GetMapping
-    public List<ItemShortDto> getOwnerItems(@RequestHeader(USER_HEADER) Integer userId) {
+    public List<ItemShortDto> getOwnerItems(@RequestHeader(USER_ID) Integer userId) {
         return itemService.findAllOwnerItems(userId).stream()
                 .map(p -> new ItemShortDto(p.getName(), p.getDescription()))
                 .collect(Collectors.toList());
@@ -58,7 +58,7 @@ public class ItemController {
     // создание вещи
     @ResponseStatus(HttpStatus.CREATED)
     @PostMapping
-    public ItemDto create(@RequestHeader(USER_HEADER) Integer userId,
+    public ItemDto create(@RequestHeader(USER_ID) Integer userId,
                           @Validated(ValidationGroups.Create.class)
                           @RequestBody ItemDto itemDto) {
         itemDto.setId(null);
@@ -69,7 +69,7 @@ public class ItemController {
 
     // обновление вещи
     @PatchMapping("/{itemId}")
-    public ItemDto update(@RequestHeader(USER_HEADER) Integer userId,
+    public ItemDto update(@RequestHeader(USER_ID) Integer userId,
                           @PathVariable Integer itemId,
                           @Validated(ValidationGroups.Update.class)
                           @RequestBody ItemDto itemDto) {
