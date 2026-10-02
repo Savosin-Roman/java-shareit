@@ -9,10 +9,6 @@ import java.util.List;
 
 public interface BookingRepository extends JpaRepository<Booking, Long> {
 
-    // ============================================================
-    // Для getAllByBooker — «мои брони» (как арендатора)
-    // ============================================================
-
     @Query("""
         SELECT b FROM Booking b
         WHERE b.booker.id = :bookerId
@@ -29,10 +25,6 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> findAllByBookerIdAndStatus(
             @Param("bookerId") Long bookerId,
             @Param("status") BookingStatus status);
-
-    // ============================================================
-    // Для getAllByOwner — «брони моих вещей» (как владельца)
-    // ============================================================
 
     @Query("""
         SELECT b FROM Booking b
@@ -51,10 +43,6 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("ownerId") Long ownerId,
             @Param("status") BookingStatus status);
 
-    // ============================================================
-    // Пересечения для approve
-    // ============================================================
-
     @Query("""
         SELECT COUNT(b) > 0 FROM Booking b
         WHERE b.item.id = :itemId
@@ -68,10 +56,6 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end,
             @Param("excludeId") Long excludeId);
-
-    // ============================================================
-    // Для CommentService — проверка «пользователь арендовал вещь»
-    // ============================================================
 
     @Query("""
         SELECT COUNT(b) > 0 FROM Booking b
