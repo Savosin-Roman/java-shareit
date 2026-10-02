@@ -1,81 +1,54 @@
 package ru.practicum.shareit.item;
 
+import static ru.practicum.shareit.validation.Headers.USER_ID;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.validation.annotation.Validated;
-
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import ru.practicum.shareit.item.dto.CreateItemRequest;
 import ru.practicum.shareit.item.dto.ItemDto;
-import ru.practicum.shareit.item.dto.ItemMapper;
-import ru.practicum.shareit.item.dto.ItemShortDto;
-import ru.practicum.shareit.item.model.Item;
-import ru.practicum.shareit.validation.ValidationGroups;
+import ru.practicum.shareit.item.dto.UpdateItemRequest;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
-import static ru.practicum.shareit.validation.Headers.USER_ID;
-
-@RequiredArgsConstructor
 @RestController
-@RequestMapping("/items")
+@RequestMapping(path = "/items")
+@RequiredArgsConstructor
 public class ItemController {
 
     private final ItemService itemService;
-    private final ItemMapper itemMapper;
 
-    // просмотр информации о конкретной вещи
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public ItemDto create(
+            @RequestHeader(USER_ID) Long userId,
+            @Valid @RequestBody CreateItemRequest request) {
+        return itemService.create(userId, request);
+    }
+
+    @PatchMapping("/{itemId}")
+    public ItemDto update(
+            @RequestHeader(USER_ID) Long userId,
+            @PathVariable Long itemId,
+            @Valid @RequestBody UpdateItemRequest request) {
+        return itemService.update(userId, itemId, request);
+    }
+
     @GetMapping("/{itemId}")
-    public ItemDto getById(@PathVariable Integer itemId) {
-        return itemMapper.toDto(itemService.getById(itemId));
+    public ItemDto getById(
+            @RequestHeader(USER_ID) Long userId,
+            @PathVariable Long itemId) {
+        return itemService.getById(userId, itemId);
     }
 
-    // просмотр владельцем всех его вещей (только название и описание)
     @GetMapping
-    public List<ItemShortDto> getOwnerItems(@RequestHeader(USER_ID) Integer userId) {
-        return itemService.findAllOwnerItems(userId).stream()
-                .map(p -> new ItemShortDto(p.getName(), p.getDescription()))
-                .collect(Collectors.toList());
+    public List<ItemDto> getAllByOwner(
+            @RequestHeader(USER_ID) Long userId) {
+        return itemService.getAllByOwner(userId);
     }
 
-    // поиск вещи по названию
     @GetMapping("/search")
     public List<ItemDto> search(@RequestParam String text) {
-        return itemService.findItemsByName(text).stream()
-                .map(itemMapper::toDto)
-                .toList();
-    }
-
-    // создание вещи
-    @ResponseStatus(HttpStatus.CREATED)
-    @PostMapping
-    public ItemDto create(@RequestHeader(USER_ID) Integer userId,
-                          @Validated(ValidationGroups.Create.class)
-                          @RequestBody ItemDto itemDto) {
-        itemDto.setId(null);
-        Item item = itemMapper.toEntity(itemDto);
-        Item saved = itemService.save(userId, item);
-        return itemMapper.toDto(saved);
-    }
-
-    // обновление вещи
-    @PatchMapping("/{itemId}")
-    public ItemDto update(@RequestHeader(USER_ID) Integer userId,
-                          @PathVariable Integer itemId,
-                          @Validated(ValidationGroups.Update.class)
-                          @RequestBody ItemDto itemDto) {
-        itemDto.setId(itemId);
-        Item item = itemMapper.toEntity(itemDto);
-        Item updated = itemService.update(userId, itemId, item);
-        return itemMapper.toDto(updated);
+        return itemService.search(text);
     }
 }

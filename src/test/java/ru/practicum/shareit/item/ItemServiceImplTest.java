@@ -6,10 +6,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import ru.practicum.shareit.exception.ApiException;
-import ru.practicum.shareit.exception.ErrorCode;
-import ru.practicum.shareit.item.ItemRepository;
-import ru.practicum.shareit.item.ItemServiceImpl;
+import ru.practicum.shareit.booking.BookingMapper;
+import ru.practicum.shareit.booking.BookingRepository;
+import ru.practicum.shareit.comment.CommentMapper;
+import ru.practicum.shareit.comment.CommentRepository;
+import ru.practicum.shareit.exception.NotFoundException;
+import ru.practicum.shareit.item.dto.CreateItemRequest;
+import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.item.dto.UpdateItemRequest;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.UserRepository;
 import ru.practicum.shareit.user.model.User;
@@ -20,7 +24,10 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -34,140 +41,210 @@ class ItemServiceImplTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private ItemMapper itemMapper;
+
+    @Mock
+    private CommentRepository commentRepository;
+
+    @Mock
+    private BookingRepository bookingRepository;
+
+    @Mock
+    private CommentMapper commentMapper;
+
+    @Mock
+    private BookingMapper bookingMapper;
+
     @InjectMocks
     private ItemServiceImpl itemService;
 
-    private Item item;
     private User owner;
+    private Item item;
+    private ItemDto itemDto;
 
     @BeforeEach
     void setUp() {
-        owner = new User();
-        owner.setId(1);
-        owner.setEmail("owner@mail.com");
-        owner.setName("Owner");
+        owner = User.builder()
+                .id(1L)
+                .name("Owner")
+                .email("owner@mail.com")
+                .build();
 
-        item = new Item();
-        item.setId(10);
-        item.setName("Дрель");
-        item.setDescription("Аккумуляторная");
-        item.setAvailable(true);
-        item.setOwner(1);
+        item = Item.builder()
+                .id(10L)
+                .name("Дрель")
+                .description("Аккумуляторная")
+                .available(true)
+                .owner(owner)
+                .build();
+
+        itemDto = ItemDto.builder()
+                .id(10L)
+                .name("Дрель")
+                .description("Аккумуляторная")
+                .available(true)
+                .build();
+
+        // Дефолтные моки для новых зависимостей — чтобы NPE не падал
+        lenient().when(commentRepository.findAllByItemId(anyLong()))
+                .thenReturn(List.of());
+        lenient().when(commentMapper.toDtoList(anyList()))
+                .thenReturn(List.of());
+        lenient().when(bookingRepository.findLastBooking(anyLong(), any()))
+                .thenReturn(null);
+        lenient().when(bookingRepository.findNextBooking(anyLong(), any()))
+                .thenReturn(null);
+        lenient().when(bookingMapper.toDto(any()))
+                .thenReturn(null);
     }
 
     @Test
-    void findItemsByName_whenTextBlank_returnsEmpty() {
-        assertThat(itemService.findItemsByName(null)).isEmpty();
-        assertThat(itemService.findItemsByName("")).isEmpty();
-        assertThat(itemService.findItemsByName("   ")).isEmpty();
+    void search_whenTextBlank_returnsEmpty() {
+        assertThat(itemService.search(null)).isEmpty();
+        assertThat(itemService.search("")).isEmpty();
+        assertThat(itemService.search("   ")).isEmpty();
 
-        verify(itemRepository, never()).findItemsByName(anyString());
+        verify(itemRepository, never()).searchAvailableByText(anyString());
     }
 
     @Test
-    void findItemsByName_whenTextPresent_delegatesToRepo() {
-        when(itemRepository.findItemsByName("дрель")).thenReturn(List.of(item));
+    void search_whenTextPresent_delegatesToRepo() {
+        when(itemRepository.searchAvailableByText("дрель")).thenReturn(List.of(item));
+        when(itemMapper.toDtoList(List.of(item))).thenReturn(List.of(itemDto));
 
-        List<Item> result = itemService.findItemsByName("дрель");
+        List<ItemDto> result = itemService.search("дрель");
 
-        assertThat(result).containsExactly(item);
+        assertThat(result).containsExactly(itemDto);
     }
 
     @Test
-    void findAllOwnerItems_whenUserNotFound_throws() {
-        when(userRepository.getById(99)).thenReturn(Optional.empty());
+    void getAllByOwner_whenUserNotFound_throws() {
+        when(userRepository.existsById(99L)).thenReturn(false);
 
-        assertThatThrownBy(() -> itemService.findAllOwnerItems(99))
-                .isInstanceOf(ApiException.class)
-                .extracting("code")
-                .isEqualTo(ErrorCode.USER_NOT_FOUND);
+        assertThatThrownBy(() -> itemService.getAllByOwner(99L))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("99");
     }
 
     @Test
-    void findAllOwnerItems_whenUserExists_returnsItems() {
-        when(userRepository.getById(1)).thenReturn(Optional.of(owner));
-        when(itemRepository.findAllOwnerItems(1)).thenReturn(List.of(item));
+    void getAllByOwner_whenUserExists_returnsItems() {
+        when(userRepository.existsById(1L)).thenReturn(true);
+        when(itemRepository.findAllByOwnerIdOrderByIdAsc(1L)).thenReturn(List.of(item));
+        when(itemMapper.toDto(item)).thenReturn(itemDto);
+        when(commentRepository.findAllByItemId(10L)).thenReturn(List.of());
+        when(commentMapper.toDtoList(List.of())).thenReturn(List.of());
 
-        List<Item> result = itemService.findAllOwnerItems(1);
+        List<ItemDto> result = itemService.getAllByOwner(1L);
 
-        assertThat(result).containsExactly(item);
+        assertThat(result).hasSize(1);
+        assertThat(result.getFirst().getId()).isEqualTo(10L);
+        assertThat(result.getFirst().getName()).isEqualTo("Дрель");
     }
 
     @Test
     void getById_whenNotFound_throws() {
-        when(itemRepository.getById(99)).thenReturn(Optional.empty());
+        when(itemRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> itemService.getById(99))
-                .isInstanceOf(ApiException.class)
-                .extracting("code")
-                .isEqualTo(ErrorCode.ITEM_NOT_FOUND);
+        assertThatThrownBy(() -> itemService.getById(1L, 99L))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("99");
     }
 
     @Test
-    void save_whenOwnerExists_savesWithOwnerId() {
-        when(userRepository.getById(1)).thenReturn(Optional.of(owner));
+    void getById_whenFound_returnsDto() {
+        when(itemRepository.findById(10L)).thenReturn(Optional.of(item));
+        when(itemMapper.toDto(item)).thenReturn(itemDto);
+        when(commentRepository.findAllByItemId(10L)).thenReturn(List.of());
+        when(commentMapper.toDtoList(List.of())).thenReturn(List.of());
+
+        ItemDto result = itemService.getById(1L, 10L);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getId()).isEqualTo(10L);
+        assertThat(result.getName()).isEqualTo("Дрель");
+        assertThat(result.getComments()).isEmpty();
+    }
+
+    @Test
+    void create_whenOwnerExists_saves() {
+        CreateItemRequest request = new CreateItemRequest();
+        request.setName("Дрель");
+        request.setDescription("Аккумуляторная");
+        request.setAvailable(true);
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(owner));
         when(itemRepository.save(any(Item.class))).thenReturn(item);
+        when(itemMapper.toDto(item)).thenReturn(itemDto);
 
-        Item result = itemService.save(1, item);
+        ItemDto result = itemService.create(1L, request);
 
-        assertThat(result.getOwner()).isEqualTo(1);
-        verify(itemRepository).save(item);
+        assertThat(result).isEqualTo(itemDto);
+        verify(itemRepository).save(any(Item.class));
     }
 
     @Test
-    void save_whenOwnerNotFound_throws() {
-        when(userRepository.getById(1)).thenReturn(Optional.empty());
+    void create_whenOwnerNotFound_throws() {
+        CreateItemRequest request = new CreateItemRequest();
+        request.setName("Дрель");
+        request.setDescription("Аккумуляторная");
+        request.setAvailable(true);
 
-        assertThatThrownBy(() -> itemService.save(1, item))
-                .isInstanceOf(ApiException.class)
-                .extracting("code")
-                .isEqualTo(ErrorCode.USER_NOT_FOUND);
+        when(userRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> itemService.create(99L, request))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("99");
     }
 
     @Test
-    void update_whenNotOwner_throwsAccessDenied() {
-        Item existing = new Item();
-        existing.setId(10);
-        existing.setOwner(2);
+    void update_whenNotOwner_throwsNotFound() {
+        User otherOwner = User.builder().id(2L).build();
+        Item existing = Item.builder()
+                .id(10L)
+                .owner(otherOwner)
+                .build();
 
-        when(itemRepository.getById(10)).thenReturn(Optional.of(existing));
+        when(itemRepository.findById(10L)).thenReturn(Optional.of(existing));
 
-        assertThatThrownBy(() -> itemService.update(1, 10, item))
-                .isInstanceOf(ApiException.class)
-                .extracting("code")
-                .isEqualTo(ErrorCode.ACCESS_DENIED);
+        UpdateItemRequest request = new UpdateItemRequest();
+        request.setName("Новая дрель");
 
-        verify(itemRepository, never()).update(any());
+        assertThatThrownBy(() -> itemService.update(1L, 10L, request))
+                .isInstanceOf(NotFoundException.class);
+
+        verify(itemRepository, never()).save(any());
     }
 
     @Test
     void update_whenOwner_updatesOnlyProvidedFields() {
-        Item existing = new Item();
-        existing.setId(10);
-        existing.setName("Old");
-        existing.setDescription("Old Desc");
-        existing.setAvailable(true);
-        existing.setOwner(1);
+        Item existing = Item.builder()
+                .id(10L)
+                .name("Old")
+                .description("Old Desc")
+                .available(true)
+                .owner(owner)
+                .build();
 
-        Item patch = new Item();
-        patch.setName("New Name");
+        UpdateItemRequest request = new UpdateItemRequest();
+        request.setName("New Name");
 
-        when(itemRepository.getById(10)).thenReturn(Optional.of(existing));
-        when(itemRepository.update(any(Item.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(itemRepository.findById(10L)).thenReturn(Optional.of(existing));
+        when(itemRepository.save(any(Item.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(itemMapper.toDto(any(Item.class))).thenAnswer(inv -> {
+            Item i = inv.getArgument(0);
+            return ItemDto.builder()
+                    .id(i.getId())
+                    .name(i.getName())
+                    .description(i.getDescription())
+                    .available(i.getAvailable())
+                    .build();
+        });
 
-        Item result = itemService.update(1, 10, patch);
+        ItemDto result = itemService.update(1L, 10L, request);
 
         assertThat(result.getName()).isEqualTo("New Name");
         assertThat(result.getDescription()).isEqualTo("Old Desc");
         assertThat(result.getAvailable()).isTrue();
-    }
-
-    @Test
-    void delete_whenExists_deletes() {
-        when(itemRepository.getById(10)).thenReturn(Optional.of(item));
-
-        itemService.delete(10);
-
-        verify(itemRepository).delete(10);
     }
 }
