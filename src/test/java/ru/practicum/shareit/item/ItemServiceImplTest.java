@@ -6,6 +6,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import ru.practicum.shareit.booking.BookingMapper;
+import ru.practicum.shareit.booking.BookingRepository;
+import ru.practicum.shareit.comment.CommentMapper;
+import ru.practicum.shareit.comment.CommentRepository;
 import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.item.dto.CreateItemRequest;
 import ru.practicum.shareit.item.dto.ItemDto;
@@ -20,7 +24,10 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -36,6 +43,18 @@ class ItemServiceImplTest {
 
     @Mock
     private ItemMapper itemMapper;
+
+    @Mock
+    private CommentRepository commentRepository;
+
+    @Mock
+    private BookingRepository bookingRepository;
+
+    @Mock
+    private CommentMapper commentMapper;
+
+    @Mock
+    private BookingMapper bookingMapper;
 
     @InjectMocks
     private ItemServiceImpl itemService;
@@ -66,6 +85,18 @@ class ItemServiceImplTest {
                 .description("Аккумуляторная")
                 .available(true)
                 .build();
+
+        // Дефолтные моки для новых зависимостей — чтобы NPE не падал
+        lenient().when(commentRepository.findAllByItemId(anyLong()))
+                .thenReturn(List.of());
+        lenient().when(commentMapper.toDtoList(anyList()))
+                .thenReturn(List.of());
+        lenient().when(bookingRepository.findLastBooking(anyLong(), any()))
+                .thenReturn(null);
+        lenient().when(bookingRepository.findNextBooking(anyLong(), any()))
+                .thenReturn(null);
+        lenient().when(bookingMapper.toDto(any()))
+                .thenReturn(null);
     }
 
     @Test
@@ -100,11 +131,15 @@ class ItemServiceImplTest {
     void getAllByOwner_whenUserExists_returnsItems() {
         when(userRepository.existsById(1L)).thenReturn(true);
         when(itemRepository.findAllByOwnerIdOrderByIdAsc(1L)).thenReturn(List.of(item));
-        when(itemMapper.toDtoList(List.of(item))).thenReturn(List.of(itemDto));
+        when(itemMapper.toDto(item)).thenReturn(itemDto);
+        when(commentRepository.findAllByItemId(10L)).thenReturn(List.of());
+        when(commentMapper.toDtoList(List.of())).thenReturn(List.of());
 
         List<ItemDto> result = itemService.getAllByOwner(1L);
 
-        assertThat(result).containsExactly(itemDto);
+        assertThat(result).hasSize(1);
+        assertThat(result.getFirst().getId()).isEqualTo(10L);
+        assertThat(result.getFirst().getName()).isEqualTo("Дрель");
     }
 
     @Test
@@ -120,10 +155,15 @@ class ItemServiceImplTest {
     void getById_whenFound_returnsDto() {
         when(itemRepository.findById(10L)).thenReturn(Optional.of(item));
         when(itemMapper.toDto(item)).thenReturn(itemDto);
+        when(commentRepository.findAllByItemId(10L)).thenReturn(List.of());
+        when(commentMapper.toDtoList(List.of())).thenReturn(List.of());
 
         ItemDto result = itemService.getById(1L, 10L);
 
-        assertThat(result).isEqualTo(itemDto);
+        assertThat(result).isNotNull();
+        assertThat(result.getId()).isEqualTo(10L);
+        assertThat(result.getName()).isEqualTo("Дрель");
+        assertThat(result.getComments()).isEmpty();
     }
 
     @Test

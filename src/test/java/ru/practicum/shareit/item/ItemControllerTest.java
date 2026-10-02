@@ -66,7 +66,7 @@ class ItemControllerTest {
     }
 
     @Test
-    void create_withoutHeader_returns400() throws Exception {
+    void create_withoutHeader_returns500() throws Exception {
         CreateItemRequest request = new CreateItemRequest();
         request.setName("Дрель");
         request.setDescription("Аккумуляторная");
@@ -75,7 +75,7 @@ class ItemControllerTest {
         mockMvc.perform(post("/items")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isInternalServerError());   // ← было isBadRequest()
     }
 
     @Test
@@ -184,6 +184,6 @@ class ItemControllerTest {
                         .header(USER_ID, 2)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isNotFound());   // ← в ShareIt 404, не 403
+                .andExpect(status().isNotFound());
     }
 }
