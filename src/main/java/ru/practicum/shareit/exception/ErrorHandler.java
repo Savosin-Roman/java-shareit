@@ -3,7 +3,6 @@ package ru.practicum.shareit.exception;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -51,13 +50,6 @@ public class ErrorHandler {
                 .collect(Collectors.joining("; "));
         log.warn("400 (bean validation): {}", message);
         return Map.of("error", message);
-    }
-
-    @ExceptionHandler(MissingRequestHeaderException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map<String, String> handleMissingHeader(MissingRequestHeaderException e) {
-        log.warn("400 (missing header): {}", e.getMessage());
-        return Map.of("error", "Отсутствует обязательный заголовок: " + e.getHeaderName());
     }
 
     @ExceptionHandler(Exception.class)

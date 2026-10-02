@@ -6,6 +6,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.exception.NotFoundException;
+import ru.practicum.shareit.exception.ValidationException;
 import ru.practicum.shareit.item.ItemMapper;
 import ru.practicum.shareit.item.ItemRepository;
 import ru.practicum.shareit.item.dto.ItemShortDto;
@@ -58,7 +59,7 @@ public class ItemRequestServiceImpl implements ItemRequestService {
             throw new NotFoundException("Пользователь с id=" + userId + " не найден");
         }
         if (from < 0 || size <= 0) {
-            throw new IllegalArgumentException("Некорректные параметры пагинации");
+            throw new ValidationException("Некорректные параметры пагинации");
         }
 
         Pageable pageable = PageRequest.of(from / size, size);

@@ -2,6 +2,8 @@ package ru.practicum.shareit.booking;
 
 import org.springframework.stereotype.Component;
 import ru.practicum.shareit.booking.dto.BookingDto;
+import ru.practicum.shareit.item.dto.ItemShortDto;
+import ru.practicum.shareit.user.dto.UserShortDto;
 
 import java.util.List;
 
@@ -16,9 +18,13 @@ public class BookingMapper {
                 .id(booking.getId())
                 .start(booking.getStart())
                 .end(booking.getEnd())
-                .itemId(booking.getItem().getId())
-                .itemName(booking.getItem().getName())
-                .bookerId(booking.getBooker().getId())
+                .item(ItemShortDto.builder()
+                        .id(booking.getItem().getId())
+                        .name(booking.getItem().getName())
+                        .build())
+                .booker(UserShortDto.builder()
+                        .id(booking.getBooker().getId())
+                        .build())
                 .status(booking.getStatus())
                 .build();
     }

@@ -20,6 +20,7 @@ public class ItemMapper {
                 .description(item.getDescription())
                 .available(item.getAvailable())
                 .requestId(item.getRequestId())
+                .comments(List.of())   // пустой список по умолчанию
                 .build();
     }
 
@@ -36,9 +37,6 @@ public class ItemMapper {
         return ItemShortDto.builder()
                 .id(item.getId())
                 .name(item.getName())
-                .description(item.getDescription())
-                .available(item.getAvailable())
-                .requestId(item.getRequestId())
                 .build();
     }
 
