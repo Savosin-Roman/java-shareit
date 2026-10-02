@@ -11,7 +11,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class CreateItemRequestRequest {
+public class CreateRequest {
 
     @NotBlank(message = "Описание обязательно")
     private String description;

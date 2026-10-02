@@ -1,20 +1,20 @@
 package ru.practicum.shareit.user.dto;
 
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import lombok.Data;
-import ru.practicum.shareit.validation.ValidationGroups;
-import ru.practicum.shareit.validation.ValidationKeys;
 
-@Data
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class UserDto {
 
-    private Integer id;
-
-    @NotBlank(groups = {ValidationGroups.Create.class}, message = ValidationKeys.USER_EMAIL_NOT_BLANK)
-    @Email(groups = {ValidationGroups.Create.class, ValidationGroups.Update.class},
-            message = ValidationKeys.USER_EMAIL_INVALID)
-    private String email;
-
+    private Long id;
     private String name;
+    private String email;
 }

@@ -8,8 +8,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-import ru.practicum.shareit.item.dto.ItemDto;
-import ru.practicum.shareit.user.dto.UserDto;
+import ru.practicum.shareit.item.dto.CreateItemRequest;
+import ru.practicum.shareit.item.dto.UpdateItemRequest;
+import ru.practicum.shareit.user.dto.CreateUserRequest;
+import ru.practicum.shareit.user.dto.UpdateUserRequest;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -29,7 +31,7 @@ class ShareItIntegrationTest {
 
     @Test
     void fullUserFlow() throws Exception {
-        UserDto create = new UserDto();
+        CreateUserRequest create = new CreateUserRequest();
         create.setEmail("flow@mail.com");
         create.setName("Flow");
 
@@ -40,13 +42,13 @@ class ShareItIntegrationTest {
                 .andExpect(jsonPath("$.id").exists())
                 .andReturn().getResponse().getContentAsString();
 
-        int id = objectMapper.readTree(body).get("id").asInt();
+        long id = objectMapper.readTree(body).get("id").asLong();
 
         mockMvc.perform(get("/users/" + id))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.email").value("flow@mail.com"));
 
-        UserDto patch = new UserDto();
+        UpdateUserRequest patch = new UpdateUserRequest();
         patch.setName("Updated Flow");
 
         mockMvc.perform(patch("/users/" + id)
@@ -64,7 +66,7 @@ class ShareItIntegrationTest {
 
     @Test
     void fullItemFlow() throws Exception {
-        UserDto owner = new UserDto();
+        CreateUserRequest owner = new CreateUserRequest();
         owner.setEmail("owner-flow@mail.com");
         owner.setName("Owner");
 
@@ -74,9 +76,9 @@ class ShareItIntegrationTest {
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
 
-        int ownerId = objectMapper.readTree(ownerBody).get("id").asInt();
+        long ownerId = objectMapper.readTree(ownerBody).get("id").asLong();
 
-        ItemDto create = new ItemDto();
+        CreateItemRequest create = new CreateItemRequest();
         create.setName("Молоток");
         create.setDescription("Тяжёлый");
         create.setAvailable(true);
@@ -86,12 +88,12 @@ class ShareItIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(create)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.request").doesNotExist())
+                .andExpect(jsonPath("$.requestId").doesNotExist())
                 .andReturn().getResponse().getContentAsString();
 
-        int itemId = objectMapper.readTree(itemBody).get("id").asInt();
+        long itemId = objectMapper.readTree(itemBody).get("id").asLong();
 
-        mockMvc.perform(get("/items/" + itemId))
+        mockMvc.perform(get("/items/" + itemId).header(USER_HEADER, ownerId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Молоток"));
 
@@ -103,7 +105,7 @@ class ShareItIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1));
 
-        ItemDto patch = new ItemDto();
+        UpdateItemRequest patch = new UpdateItemRequest();
         patch.setAvailable(false);
 
         mockMvc.perform(patch("/items/" + itemId)

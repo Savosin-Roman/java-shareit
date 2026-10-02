@@ -1,28 +1,25 @@
 package ru.practicum.shareit.request.dto;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import lombok.Data;
-import ru.practicum.shareit.user.model.User;
-import ru.practicum.shareit.validation.ValidationGroups;
-import ru.practicum.shareit.validation.ValidationKeys;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import ru.practicum.shareit.item.dto.ItemShortDto;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class ItemRequestDto {
 
-    @NotNull(groups = ValidationGroups.Update.class,
-            message = ValidationKeys.ITEM_REQUEST_ID_NOT_NULL)
-    private Integer id;
-
-    @NotBlank(groups = {ValidationGroups.Create.class},
-            message = ValidationKeys.ITEM_REQUEST_DESCRIPTION_NOT_BLANK)
+    private Long id;
     private String description;
-
-    @NotNull(groups = {ValidationGroups.Create.class},
-            message = ValidationKeys.ITEM_REQUEST_REQUESTOR_NOT_NULL)
-    private User requestor;
-
+    private Long requestorId;
     private LocalDateTime created;
+    private List<ItemShortDto> items;
 }

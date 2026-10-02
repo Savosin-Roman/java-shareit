@@ -1,13 +1,12 @@
 package ru.practicum.shareit.booking.dto;
 
-import jakarta.persistence.Column;
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Future;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import ru.practicum.shareit.item.model.Item;
-import ru.practicum.shareit.user.model.User;
+
 
 import java.time.LocalDateTime;
 
@@ -15,17 +14,16 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class BookingCreate {
+public class CreateBookingRequest {
 
-    @NotBlank(message = "Дата начала бронирования обязательна")
+    @NotNull(message = "ID вещи обязателен")
+    private Long itemId;
+
+    @NotNull(message = "Дата начала обязательна")
+    @Future(message = "Дата начала должна быть в будущем")
     private LocalDateTime start;
 
-    @NotBlank(message = "Дата окончания бронирования обязательна")
+    @NotNull(message = "Дата окончания обязательна")
+    @Future(message = "Дата окончания должна быть в будущем")
     private LocalDateTime end;
-
-    @NotBlank(message = "Вещь обязательна")
-    private Item item;
-
-    @NotBlank(message = "Пользователь который осуществляет бронирование обязателен")
-    private User booker;
 }
