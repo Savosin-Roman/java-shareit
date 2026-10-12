@@ -8,24 +8,25 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import ru.practicum.shareit.exception.ApiException;
-import ru.practicum.shareit.exception.ErrorCode;
+import ru.practicum.shareit.exception.ConflictException;
 import ru.practicum.shareit.exception.ErrorHandler;
+import ru.practicum.shareit.exception.NotFoundException;
+import ru.practicum.shareit.user.dto.CreateUserRequest;
+import ru.practicum.shareit.user.dto.UpdateUserRequest;
 import ru.practicum.shareit.user.dto.UserDto;
-import ru.practicum.shareit.user.dto.UserMapper;
-import ru.practicum.shareit.user.model.User;
 
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(UserController.class)
-@Import({UserMapper.class, ErrorHandler.class})
+@Import(ErrorHandler.class)
 class UserControllerTest {
 
     @Autowired
@@ -35,27 +36,27 @@ class UserControllerTest {
     private ObjectMapper objectMapper;
 
     @MockBean
-    private UserServiceImpl userService;
+    private UserService userService;
 
-    private User user() {
-        User user = new User();
-        user.setId(1);
-        user.setEmail("test@mail.com");
-        user.setName("Test");
-        return user;
+    private UserDto userDto() {
+        return UserDto.builder()
+                .id(1L)
+                .name("Test")
+                .email("test@mail.com")
+                .build();
     }
 
     @Test
     void createUser_returns201() throws Exception {
-        UserDto dto = new UserDto();
-        dto.setEmail("test@mail.com");
-        dto.setName("Test");
+        CreateUserRequest request = new CreateUserRequest();
+        request.setEmail("test@mail.com");
+        request.setName("Test");
 
-        when(userService.saveUser(any(User.class))).thenReturn(user());
+        when(userService.create(any(CreateUserRequest.class))).thenReturn(userDto());
 
         mockMvc.perform(post("/users")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(dto)))
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.email").value("test@mail.com"))
@@ -64,33 +65,33 @@ class UserControllerTest {
 
     @Test
     void createUser_withoutEmail_returns400() throws Exception {
-        UserDto dto = new UserDto();
-        dto.setName("Test");
+        CreateUserRequest request = new CreateUserRequest();
+        request.setName("Test");
 
         mockMvc.perform(post("/users")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(dto)))
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
     void createUser_withDuplicateEmail_returns409() throws Exception {
-        UserDto dto = new UserDto();
-        dto.setEmail("test@mail.com");
-        dto.setName("Test");
+        CreateUserRequest request = new CreateUserRequest();
+        request.setEmail("test@mail.com");
+        request.setName("Test");
 
-        when(userService.saveUser(any(User.class)))
-                .thenThrow(new ApiException(ErrorCode.EMAIL_ALREADY_EXISTS));
+        when(userService.create(any(CreateUserRequest.class)))
+                .thenThrow(new ConflictException("Email уже занят"));
 
         mockMvc.perform(post("/users")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(dto)))
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isConflict());
     }
 
     @Test
     void getUser_returns200() throws Exception {
-        when(userService.getUser(1)).thenReturn(user());
+        when(userService.getById(1L)).thenReturn(userDto());
 
         mockMvc.perform(get("/users/1"))
                 .andExpect(status().isOk())
@@ -99,8 +100,8 @@ class UserControllerTest {
 
     @Test
     void getUser_notFound_returns404() throws Exception {
-        when(userService.getUser(anyInt()))
-                .thenThrow(new ApiException(ErrorCode.USER_NOT_FOUND, 99));
+        when(userService.getById(anyLong()))
+                .thenThrow(new NotFoundException("Пользователь с id=99 не найден"));
 
         mockMvc.perform(get("/users/99"))
                 .andExpect(status().isNotFound());
@@ -108,7 +109,7 @@ class UserControllerTest {
 
     @Test
     void getUsers_returnsList() throws Exception {
-        when(userService.getUsers()).thenReturn(List.of(user()));
+        when(userService.getAll()).thenReturn(List.of(userDto()));
 
         mockMvc.perform(get("/users"))
                 .andExpect(status().isOk())
@@ -117,28 +118,28 @@ class UserControllerTest {
 
     @Test
     void updateUser_patch_returns200() throws Exception {
-        UserDto dto = new UserDto();
-        dto.setName("Updated");
+        UpdateUserRequest request = new UpdateUserRequest();
+        request.setName("Updated");
 
-        when(userService.updateUser(any(User.class))).thenReturn(user());
+        when(userService.update(eq(1L), any(UpdateUserRequest.class))).thenReturn(userDto());
 
         mockMvc.perform(patch("/users/1")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(dto)))
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
     }
 
     @Test
     void updateUser_conflict_returns409() throws Exception {
-        UserDto dto = new UserDto();
-        dto.setEmail("other@mail.com");
+        UpdateUserRequest request = new UpdateUserRequest();
+        request.setEmail("other@mail.com");
 
-        when(userService.updateUser(any(User.class)))
-                .thenThrow(new ApiException(ErrorCode.EMAIL_ALREADY_EXISTS));
+        when(userService.update(eq(1L), any(UpdateUserRequest.class)))
+                .thenThrow(new ConflictException("Email уже занят"));
 
         mockMvc.perform(patch("/users/1")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(dto)))
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isConflict());
     }
 
@@ -150,8 +151,8 @@ class UserControllerTest {
 
     @Test
     void deleteUser_notFound_returns404() throws Exception {
-        doThrow(new ApiException(ErrorCode.USER_NOT_FOUND, 99))
-                .when(userService).deleteUser(99);
+        doThrow(new NotFoundException("Пользователь с id=99 не найден"))
+                .when(userService).delete(99L);
 
         mockMvc.perform(delete("/users/99"))
                 .andExpect(status().isNotFound());

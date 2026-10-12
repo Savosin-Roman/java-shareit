@@ -1,37 +1,27 @@
 package ru.practicum.shareit.booking.dto;
 
-import jakarta.validation.constraints.NotNull;
-import lombok.Data;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import ru.practicum.shareit.booking.BookingStatus;
-import ru.practicum.shareit.item.model.Item;
-import ru.practicum.shareit.user.model.User;
-import ru.practicum.shareit.validation.ValidationGroups;
-import ru.practicum.shareit.validation.ValidationKeys;
+import ru.practicum.shareit.item.dto.ItemShortDto;
+import ru.practicum.shareit.user.dto.UserShortDto;
 
 import java.time.LocalDateTime;
 
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class BookingDto {
 
-    @NotNull(groups = ValidationGroups.Update.class,
-            message = ValidationKeys.BOOKING_ID_NOT_NULL)
-    private Integer id;
-
-    @NotNull(groups = {ValidationGroups.Create.class},
-            message = ValidationKeys.BOOKING_START_NOT_NULL)
+    private Long id;
     private LocalDateTime start;
-
-    @NotNull(groups = {ValidationGroups.Create.class},
-            message = ValidationKeys.BOOKING_END_NOT_NULL)
     private LocalDateTime end;
-
-    @NotNull(groups = {ValidationGroups.Create.class},
-            message = ValidationKeys.BOOKING_ITEM_NOT_NULL)
-    private Item item;
-
-    @NotNull(groups = {ValidationGroups.Create.class},
-            message = ValidationKeys.BOOKING_BOOKER_NOT_NULL)
-    private User booker;
-
+    private ItemShortDto item;
+    private UserShortDto booker;
     private BookingStatus status;
 }

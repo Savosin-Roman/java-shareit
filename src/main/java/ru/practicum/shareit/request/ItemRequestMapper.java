@@ -1,33 +1,28 @@
 package ru.practicum.shareit.request;
 
-import ru.practicum.shareit.mapper.Mapper;
+import org.springframework.stereotype.Component;
 import ru.practicum.shareit.request.dto.ItemRequestDto;
 
-public class ItemRequestMapper implements Mapper<ItemRequestDto, ItemRequest> {
+import java.util.List;
 
-    @Override
-    public ItemRequest toEntity(ItemRequestDto dto) {
-        if (dto == null) {
+@Component
+public class ItemRequestMapper {
+
+    public ItemRequestDto toDto(ItemRequest request) {
+        if (request == null) {
             return null;
         }
-        ItemRequest itemRequest = new ItemRequest();
-        itemRequest.setId(dto.getId());
-        itemRequest.setDescription(dto.getDescription());
-        itemRequest.setRequestor(dto.getRequestor());
-        itemRequest.setCreated(dto.getCreated());
-        return itemRequest;
+        return ItemRequestDto.builder()
+                .id(request.getId())
+                .description(request.getDescription())
+                .requestorId(request.getRequestor().getId())
+                .created(request.getCreated())
+                .build();
     }
 
-    @Override
-    public ItemRequestDto toDto(ItemRequest itemRequest) {
-        if (itemRequest == null) {
-            return null;
-        }
-        ItemRequestDto dto = new ItemRequestDto();
-        dto.setId(itemRequest.getId());
-        dto.setDescription(itemRequest.getDescription());
-        dto.setRequestor(itemRequest.getRequestor());
-        dto.setCreated(itemRequest.getCreated());
-        return dto;
+    public List<ItemRequestDto> toDtoList(List<ItemRequest> requests) {
+        return requests.stream()
+                .map(this::toDto)
+                .toList();
     }
 }
