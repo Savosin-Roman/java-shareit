@@ -254,4 +254,166 @@ class BookingServiceIntegrationTest {
         assertThatThrownBy(() -> bookingService.getAllByOwner(99L, "ALL"))
                 .isInstanceOf(NotFoundException.class);
     }
+
+    // ================= getAllByBooker: CURRENT, PAST, FUTURE =================
+
+    @Test
+    void getAllByBooker_current_returnsApprovedCurrentBookings() {
+        User owner = createUser("curOwner@test.com");
+        User booker = createUser("curBooker@test.com");
+        Long itemId = createItem(owner.getId(), true);
+
+        CreateBookingRequest request = new CreateBookingRequest();
+        request.setItemId(itemId);
+        request.setStart(LocalDateTime.now().minusDays(1));
+        request.setEnd(LocalDateTime.now().plusDays(1));
+        Long bookingId = bookingService.create(booker.getId(), request).getId();
+        bookingService.approve(owner.getId(), bookingId, true);
+
+        List<BookingDto> result = bookingService.getAllByBooker(booker.getId(), "CURRENT");
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getId()).isEqualTo(bookingId);
+    }
+
+    @Test
+    void getAllByBooker_past_returnsApprovedPastBookings() {
+        User owner = createUser("pastOwner@test.com");
+        User booker = createUser("pastBooker@test.com");
+        Long itemId = createItem(owner.getId(), true);
+
+        CreateBookingRequest request = new CreateBookingRequest();
+        request.setItemId(itemId);
+        request.setStart(LocalDateTime.now().minusDays(5));
+        request.setEnd(LocalDateTime.now().minusDays(4));
+        Long bookingId = bookingService.create(booker.getId(), request).getId();
+        bookingService.approve(owner.getId(), bookingId, true);
+
+        List<BookingDto> result = bookingService.getAllByBooker(booker.getId(), "PAST");
+
+        assertThat(result).hasSize(1);
+    }
+
+    @Test
+    void getAllByBooker_future_returnsApprovedFutureBookings() {
+        User owner = createUser("futOwner@test.com");
+        User booker = createUser("futBooker@test.com");
+        Long itemId = createItem(owner.getId(), true);
+
+        CreateBookingRequest request = new CreateBookingRequest();
+        request.setItemId(itemId);
+        request.setStart(LocalDateTime.now().plusDays(5));
+        request.setEnd(LocalDateTime.now().plusDays(6));
+        Long bookingId = bookingService.create(booker.getId(), request).getId();
+        bookingService.approve(owner.getId(), bookingId, true);
+
+        List<BookingDto> result = bookingService.getAllByBooker(booker.getId(), "FUTURE");
+
+        assertThat(result).hasSize(1);
+    }
+
+// ================= getAllByOwner: CURRENT, PAST, FUTURE =================
+
+    @Test
+    void getAllByOwner_current_returnsApprovedCurrentBookings() {
+        User owner = createUser("curOwner2@test.com");
+        User booker = createUser("curBooker2@test.com");
+        Long itemId = createItem(owner.getId(), true);
+
+        CreateBookingRequest request = new CreateBookingRequest();
+        request.setItemId(itemId);
+        request.setStart(LocalDateTime.now().minusDays(1));
+        request.setEnd(LocalDateTime.now().plusDays(1));
+        Long bookingId = bookingService.create(booker.getId(), request).getId();
+        bookingService.approve(owner.getId(), bookingId, true);
+
+        List<BookingDto> result = bookingService.getAllByOwner(owner.getId(), "CURRENT");
+
+        assertThat(result).hasSize(1);
+    }
+
+    @Test
+    void getAllByOwner_past_returnsApprovedPastBookings() {
+        User owner = createUser("pastOwner2@test.com");
+        User booker = createUser("pastBooker2@test.com");
+        Long itemId = createItem(owner.getId(), true);
+
+        CreateBookingRequest request = new CreateBookingRequest();
+        request.setItemId(itemId);
+        request.setStart(LocalDateTime.now().minusDays(5));
+        request.setEnd(LocalDateTime.now().minusDays(4));
+        Long bookingId = bookingService.create(booker.getId(), request).getId();
+        bookingService.approve(owner.getId(), bookingId, true);
+
+        List<BookingDto> result = bookingService.getAllByOwner(owner.getId(), "PAST");
+
+        assertThat(result).hasSize(1);
+    }
+
+    @Test
+    void getAllByOwner_future_returnsApprovedFutureBookings() {
+        User owner = createUser("futOwner2@test.com");
+        User booker = createUser("futBooker2@test.com");
+        Long itemId = createItem(owner.getId(), true);
+
+        CreateBookingRequest request = new CreateBookingRequest();
+        request.setItemId(itemId);
+        request.setStart(LocalDateTime.now().plusDays(5));
+        request.setEnd(LocalDateTime.now().plusDays(6));
+        Long bookingId = bookingService.create(booker.getId(), request).getId();
+        bookingService.approve(owner.getId(), bookingId, true);
+
+        List<BookingDto> result = bookingService.getAllByOwner(owner.getId(), "FUTURE");
+
+        assertThat(result).hasSize(1);
+    }
+
+// ================= parseState =================
+
+    @Test
+    void getAllByBooker_nullState_treatedAsAll() {
+        User owner = createUser("nullOwner@test.com");
+        User booker = createUser("nullBooker@test.com");
+        Long itemId = createItem(owner.getId(), true);
+        bookingService.create(booker.getId(), futureRequest(itemId));
+
+        List<BookingDto> result = bookingService.getAllByBooker(booker.getId(), null);
+
+        assertThat(result).hasSize(1);
+    }
+
+    @Test
+    void getAllByBooker_unknownState_throws() {
+        User user = createUser("unk@test.com");
+
+        assertThatThrownBy(() -> bookingService.getAllByBooker(user.getId(), "UNKNOWN"))
+                .isInstanceOf(ValidationException.class);
+    }
+
+    @Test
+    void approve_overlappingApprovedBooking_throws() {
+        User owner = createUser("overlapOwner@test.com");
+        User booker1 = createUser("overlapBooker1@test.com");
+        User booker2 = createUser("overlapBooker2@test.com");
+        Long itemId = createItem(owner.getId(), true);
+
+        LocalDateTime start = LocalDateTime.now().plusDays(1);
+        LocalDateTime end = LocalDateTime.now().plusDays(3);
+
+        CreateBookingRequest req1 = new CreateBookingRequest();
+        req1.setItemId(itemId);
+        req1.setStart(start);
+        req1.setEnd(end);
+        Long bookingId1 = bookingService.create(booker1.getId(), req1).getId();
+        bookingService.approve(owner.getId(), bookingId1, true);
+
+        CreateBookingRequest req2 = new CreateBookingRequest();
+        req2.setItemId(itemId);
+        req2.setStart(start.plusHours(1));
+        req2.setEnd(end.plusHours(1));
+        Long bookingId2 = bookingService.create(booker2.getId(), req2).getId();
+
+        assertThatThrownBy(() -> bookingService.approve(owner.getId(), bookingId2, true))
+                .isInstanceOf(ValidationException.class);
+    }
 }
