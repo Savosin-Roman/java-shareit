@@ -1,6 +1,5 @@
 package ru.practicum.shareit.comment;
 
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -27,7 +26,7 @@ public class CommentController {
     public CommentDto create(
             @RequestHeader(USER_ID) Long userId,
             @PathVariable Long itemId,
-            @Valid @RequestBody CreateCommentRequest request) {
+            @RequestBody CreateCommentRequest request) {
         return commentService.create(userId, itemId, request);
     }
 }

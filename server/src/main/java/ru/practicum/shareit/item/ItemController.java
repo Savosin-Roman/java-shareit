@@ -1,6 +1,5 @@
 package ru.practicum.shareit.item;
 
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -32,7 +31,7 @@ public class ItemController {
     @ResponseStatus(HttpStatus.CREATED)
     public ItemDto create(
             @RequestHeader(USER_ID) Long userId,
-            @Valid @RequestBody CreateItemRequest request) {
+            @RequestBody CreateItemRequest request) {
         return itemService.create(userId, request);
     }
 
@@ -40,7 +39,7 @@ public class ItemController {
     public ItemDto update(
             @RequestHeader(USER_ID) Long userId,
             @PathVariable Long itemId,
-            @Valid @RequestBody UpdateItemRequest request) {
+            @RequestBody UpdateItemRequest request) {
         return itemService.update(userId, itemId, request);
     }
 
